@@ -1,28 +1,37 @@
-# Base image with FFmpeg and NGINX with RTMP module
+# Base image for building
+FROM ubuntu:20.04 as builder
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    wget build-essential libpcre3 libpcre3-dev libssl-dev zlib1g-dev unzip
+
+# Download NGINX and RTMP module
+WORKDIR /tmp
+RUN wget http://nginx.org/download/nginx-1.21.6.tar.gz && \
+    wget https://github.com/arut/nginx-rtmp-module/archive/master.zip && \
+    tar -zxvf nginx-1.21.6.tar.gz && \
+    unzip master.zip
+
+# Build NGINX with RTMP module
+WORKDIR /tmp/nginx-1.21.6
+RUN ./configure --add-module=/tmp/nginx-rtmp-module-master --with-http_ssl_module && \
+    make && make install
+
+# Final lightweight image
 FROM ubuntu:20.04
 
-# Install FFmpeg, NGINX with RTMP module, and other utilities
-RUN apt-get update && apt-get install -y \
-    nginx libnginx-mod-rtmp ffmpeg curl \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# Copy built NGINX binary
+COPY --from=builder /usr/local/nginx /usr/local/nginx
 
-# Copy the custom NGINX configuration file
-COPY nginx.conf /etc/nginx/nginx.conf
+# Install required libraries
+RUN apt-get update && apt-get install -y libpcre3 libssl-dev zlib1g
 
-# Create the output directory for images
-RUN mkdir -p /home/ahn/workspace/liveStreamData
+# Copy the configuration file
+COPY nginx.conf /usr/local/nginx/conf/nginx.conf
 
-# Set the work directory
-WORKDIR /home/ahn/workspace/liveStreamData
+# Expose RTMP and HTTP ports
+EXPOSE 1935 8080
 
-# Copy the script that processes the stream
-COPY process_stream.sh /usr/local/bin/process_stream.sh
-RUN chmod +x /usr/local/bin/process_stream.sh
-
-# Expose the RTMP port
-EXPOSE 1935
-
-# Start NGINX and FFmpeg stream processing script
-CMD ["/bin/bash", "-c", "nginx && /usr/local/bin/process_stream.sh"]
+# Start NGINX
+CMD ["/usr/local/nginx/sbin/nginx", "-g", "daemon off;"]
 
