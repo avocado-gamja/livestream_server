@@ -20,16 +20,24 @@ RUN ./configure --add-module=/tmp/nginx-rtmp-module-master --with-http_ssl_modul
 # Final lightweight image
 FROM ubuntu:20.04
 
+# Install required libraries and additional tools (ffmpeg, vim, net-tools)
+RUN apt-get update && apt-get install -y \
+    libpcre3 libssl-dev zlib1g ffmpeg vim net-tools && \
+    apt-get clean
+
+# Create HLS directory
+RUN mkdir -p /tmp/hls
+
 # Copy built NGINX binary
 COPY --from=builder /usr/local/nginx /usr/local/nginx
-
-# Install required libraries
-RUN apt-get update && apt-get install -y libpcre3 libssl-dev zlib1g
 
 # Copy the configuration file
 COPY nginx.conf /usr/local/nginx/conf/nginx.conf
 
-# Expose RTMP and HTTP ports
+# Copy the HTML file
+COPY index.html /usr/local/nginx/html/index.html
+
+# Expose RTMP, HLS, and HTTP ports
 EXPOSE 1935 8080
 
 # Start NGINX

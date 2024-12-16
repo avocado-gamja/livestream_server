@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # RTMP Stream Source
-STREAM_URL="rtmp://localhost:1935/live"
+STREAM_URL="rtmp://localhost:1935/live/test"
 
 # Output Directory
-OUTPUT_DIR="/home/ahn/workspace/liveStreamData"
+OUTPUT_DIR="$(pwd)/frames"
 
 # Create the output directory if it doesn't exist
 mkdir -p "$OUTPUT_DIR"
@@ -13,5 +13,4 @@ mkdir -p "$OUTPUT_DIR"
 echo "Starting to process RTMP stream and save images to $OUTPUT_DIR"
 
 ffmpeg -i "$STREAM_URL" -vf "fps=1/5" "$OUTPUT_DIR/frame_%03d.jpg"
-
 
